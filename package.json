@@ -1,0 +1,17 @@
+{
+  "name": "yii2-blog",
+  "version": "1.0.0",
+  "description": "Yii2 Blog with Tailwind CSS",
+  "scripts": {
+    "dev": "tailwindcss -i ./src/css/app.css -o ./web/css/app.css --watch",
+    "dev:admin": "tailwindcss -i ./src/css/admin.css -o ./web/css/admin.css --watch",
+    "build": "tailwindcss -i ./src/css/app.css -o ./web/css/app.css --minify",
+    "build:admin": "tailwindcss -i ./src/css/admin.css -o ./web/css/admin.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.19",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0"
+  }
+}
