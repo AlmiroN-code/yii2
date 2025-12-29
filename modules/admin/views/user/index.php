@@ -3,10 +3,13 @@
 use yii\helpers\Html;
 use yii\helpers\Url;
 use yii\widgets\LinkPager;
-use app\models\User;
+use app\enums\UserRole;
+use app\enums\UserStatus;
 
 /** @var yii\web\View $this */
 /** @var yii\data\ActiveDataProvider $dataProvider */
+/** @var array $roles */
+/** @var array $statuses */
 /** @var string|null $currentRole */
 /** @var string|null $currentStatus */
 
@@ -27,7 +30,7 @@ $this->params['breadcrumbs'][] = $this->title;
                 <select onchange="window.location.href='<?= Url::to(['index']) ?>?role=' + this.value + '&status=<?= $currentStatus ?>'" 
                         class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     <option value="">Все роли</option>
-                    <?php foreach (User::getRoleLabels() as $value => $label): ?>
+                    <?php foreach ($roles as $value => $label): ?>
                         <option value="<?= $value ?>" <?= $currentRole === $value ? 'selected' : '' ?>><?= $label ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -37,7 +40,7 @@ $this->params['breadcrumbs'][] = $this->title;
                 <select onchange="window.location.href='<?= Url::to(['index']) ?>?role=<?= $currentRole ?>&status=' + this.value" 
                         class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     <option value="">Все статусы</option>
-                    <?php foreach (User::getStatusLabels() as $value => $label): ?>
+                    <?php foreach ($statuses as $value => $label): ?>
                         <option value="<?= $value ?>" <?= $currentStatus !== null && (int)$currentStatus === $value ? 'selected' : '' ?>><?= $label ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -70,9 +73,10 @@ $this->params['breadcrumbs'][] = $this->title;
                         <td class="px-6 py-4 whitespace-nowrap">
                             <?php
                             $roleColors = [
-                                User::ROLE_USER => 'bg-gray-100 text-gray-800',
-                                User::ROLE_AUTHOR => 'bg-blue-100 text-blue-800',
-                                User::ROLE_ADMIN => 'bg-purple-100 text-purple-800',
+                                UserRole::USER->value => 'bg-gray-100 text-gray-800',
+                                UserRole::AUTHOR->value => 'bg-blue-100 text-blue-800',
+                                UserRole::MODERATOR->value => 'bg-green-100 text-green-800',
+                                UserRole::ADMIN->value => 'bg-purple-100 text-purple-800',
                             ];
                             $roleColor = $roleColors[$user->role] ?? 'bg-gray-100 text-gray-800';
                             ?>
@@ -83,9 +87,9 @@ $this->params['breadcrumbs'][] = $this->title;
                         <td class="px-6 py-4 whitespace-nowrap">
                             <?php
                             $statusColors = [
-                                User::STATUS_ACTIVE => 'bg-green-100 text-green-800',
-                                User::STATUS_INACTIVE => 'bg-yellow-100 text-yellow-800',
-                                User::STATUS_BANNED => 'bg-red-100 text-red-800',
+                                UserStatus::ACTIVE->value => 'bg-green-100 text-green-800',
+                                UserStatus::INACTIVE->value => 'bg-yellow-100 text-yellow-800',
+                                UserStatus::BANNED->value => 'bg-red-100 text-red-800',
                             ];
                             $statusColor = $statusColors[$user->status] ?? 'bg-gray-100 text-gray-800';
                             ?>

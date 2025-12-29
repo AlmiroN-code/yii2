@@ -1,24 +1,43 @@
 <?php
 
+declare(strict_types=1);
+
 namespace app\controllers;
 
 use Yii;
 use yii\web\Controller;
-use yii\web\Response;
 use yii\web\NotFoundHttpException;
 use yii\web\ForbiddenHttpException;
 use yii\web\UploadedFile;
 use yii\filters\AccessControl;
+use yii\data\ActiveDataProvider;
+use app\enums\PublicationStatus;
 use app\models\User;
+use app\models\Favorite;
 use app\models\ProfileEditForm;
 use app\models\PasswordChangeForm;
+use app\repositories\UserRepositoryInterface;
+use app\repositories\PublicationRepositoryInterface;
+use app\services\UserServiceInterface;
+use app\components\Breadcrumbs;
 
 /**
  * ProfileController - контроллер профилей пользователей.
- * Requirements: 2.1-2.7
+ * Requirements: 2.2, 3.3
  */
 class ProfileController extends Controller
 {
+    public function __construct(
+        $id,
+        $module,
+        private readonly UserServiceInterface $userService,
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly PublicationRepositoryInterface $publicationRepository,
+        array $config = []
+    ) {
+        parent::__construct($id, $module, $config);
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -39,15 +58,16 @@ class ProfileController extends Controller
         ];
     }
 
+
     /**
      * Displays user profile.
-     * Requirements: 2.1
+     * Requirements: 2.2
      */
     public function actionView(string $username): string
     {
         $user = $this->findUser($username);
         
-        $this->view->params['breadcrumbs'] = \app\components\Breadcrumbs::forProfile($user);
+        $this->view->params['breadcrumbs'] = Breadcrumbs::forProfile($user);
 
         return $this->render('view', [
             'user' => $user,
@@ -56,7 +76,7 @@ class ProfileController extends Controller
 
     /**
      * Edits user profile.
-     * Requirements: 2.2, 2.3, 2.4
+     * Requirements: 2.2, 3.3
      */
     public function actionEdit(string $username)
     {
@@ -82,7 +102,7 @@ class ProfileController extends Controller
 
     /**
      * Changes user password.
-     * Requirements: 2.5, 2.6
+     * Requirements: 3.3
      */
     public function actionPassword(string $username)
     {
@@ -104,19 +124,19 @@ class ProfileController extends Controller
 
     /**
      * Displays user favorites.
-     * Requirements: 3.3
+     * Requirements: 2.2
      */
     public function actionFavorites(string $username): string
     {
         $user = $this->findUser($username);
 
-        $favorites = \app\models\Favorite::find()
+        $favorites = Favorite::find()
             ->where(['user_id' => $user->id])
             ->with(['publication', 'publication.category'])
             ->orderBy(['created_at' => SORT_DESC])
             ->all();
 
-        $this->view->params['breadcrumbs'] = \app\components\Breadcrumbs::forProfile($user, 'Избранное');
+        $this->view->params['breadcrumbs'] = Breadcrumbs::forProfile($user, 'Избранное');
 
         return $this->render('favorites', [
             'user' => $user,
@@ -124,28 +144,29 @@ class ProfileController extends Controller
         ]);
     }
 
+
     /**
      * Displays user publications.
+     * Requirements: 2.2
      */
     public function actionPublications(string $username): string
     {
         $user = $this->findUser($username);
 
-        $query = \app\models\Publication::find()
-            ->where(['author_id' => $user->id])
+        $query = $this->publicationRepository->findByAuthor($user->id)
             ->orderBy(['created_at' => SORT_DESC]);
         
         // Показываем только опубликованные для других пользователей
         if (Yii::$app->user->isGuest || Yii::$app->user->id !== $user->id) {
-            $query->andWhere(['status' => \app\models\Publication::STATUS_PUBLISHED]);
+            $query->andWhere(['status' => PublicationStatus::PUBLISHED->value]);
         }
 
-        $dataProvider = new \yii\data\ActiveDataProvider([
+        $dataProvider = new ActiveDataProvider([
             'query' => $query,
             'pagination' => ['pageSize' => 10],
         ]);
 
-        $this->view->params['breadcrumbs'] = \app\components\Breadcrumbs::forProfile($user, 'Публикации');
+        $this->view->params['breadcrumbs'] = Breadcrumbs::forProfile($user, 'Публикации');
 
         return $this->render('publications', [
             'user' => $user,
@@ -154,14 +175,14 @@ class ProfileController extends Controller
     }
 
     /**
-     * Finds user by username.
+     * Finds user by username using repository.
      * @throws NotFoundHttpException
      */
     protected function findUser(string $username): User
     {
-        $user = User::findByUsername($username);
+        $user = $this->userRepository->findByUsername($username);
         
-        if (!$user) {
+        if ($user === null) {
             throw new NotFoundHttpException('Пользователь не найден.');
         }
 

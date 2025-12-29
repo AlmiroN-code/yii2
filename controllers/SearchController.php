@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace app\controllers;
 
 use Yii;
@@ -10,21 +12,22 @@ use app\components\Breadcrumbs;
 
 /**
  * SearchController - контроллер поиска.
- * Requirements: 7.1-7.6
+ * Requirements: 2.1, 2.3, 2.4, 3.4
  */
 class SearchController extends Controller
 {
-    private $searchService;
-
-    public function __construct($id, $module, $config = [])
-    {
-        $this->searchService = new SearchService();
+    public function __construct(
+        $id,
+        $module,
+        private readonly SearchService $searchService,
+        array $config = []
+    ) {
         parent::__construct($id, $module, $config);
     }
 
     /**
      * Autocomplete API.
-     * Requirements: 7.1, 7.2, 7.3
+     * Requirements: 2.1, 2.3, 2.4
      */
     public function actionAutocomplete(): array
     {
@@ -41,7 +44,7 @@ class SearchController extends Controller
 
     /**
      * Search results page.
-     * Requirements: 7.5
+     * Requirements: 2.1
      */
     public function actionIndex(): string
     {

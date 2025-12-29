@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace app\models;
 
 use Yii;
+use app\enums\UserRole;
+use app\enums\UserStatus;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
 use yii\db\ActiveQuery;
@@ -11,7 +15,7 @@ use yii\web\IdentityInterface;
 
 /**
  * User model для системы авторизации.
- * Requirements: 1.1-1.9, 1.6, 1.7
+ * Requirements: 1.1-1.9, 1.4, 4.2, 5.1, 5.3, 5.4
  *
  * @property int $id
  * @property string $username
@@ -28,14 +32,6 @@ use yii\web\IdentityInterface;
  */
 class User extends ActiveRecord implements IdentityInterface
 {
-    const STATUS_INACTIVE = 0;
-    const STATUS_ACTIVE = 1;
-    const STATUS_BANNED = 2;
-
-    const ROLE_USER = 'user';
-    const ROLE_AUTHOR = 'author';
-    const ROLE_ADMIN = 'admin';
-
     /**
      * {@inheritdoc}
      */
@@ -57,6 +53,7 @@ class User extends ActiveRecord implements IdentityInterface
         ];
     }
 
+
     /**
      * {@inheritdoc}
      */
@@ -72,11 +69,11 @@ class User extends ActiveRecord implements IdentityInterface
             [['email'], 'email'],
             [['email'], 'unique', 'message' => 'Этот email уже зарегистрирован'],
             [['status'], 'integer'],
-            [['status'], 'in', 'range' => [self::STATUS_INACTIVE, self::STATUS_ACTIVE, self::STATUS_BANNED]],
-            [['status'], 'default', 'value' => self::STATUS_ACTIVE],
+            [['status'], 'in', 'range' => array_column(UserStatus::cases(), 'value')],
+            [['status'], 'default', 'value' => UserStatus::ACTIVE->value],
             [['role'], 'string', 'max' => 20],
-            [['role'], 'in', 'range' => [self::ROLE_USER, self::ROLE_AUTHOR, self::ROLE_ADMIN]],
-            [['role'], 'default', 'value' => self::ROLE_USER],
+            [['role'], 'in', 'range' => array_column(UserRole::cases(), 'value')],
+            [['role'], 'default', 'value' => UserRole::USER->value],
         ];
     }
 
@@ -100,19 +97,51 @@ class User extends ActiveRecord implements IdentityInterface
     }
 
     /**
-     * {@inheritdoc}
+     * Gets the user status as enum.
      */
-    public static function findIdentity($id)
+    public function getUserStatus(): UserStatus
     {
-        return static::findOne(['id' => $id, 'status' => self::STATUS_ACTIVE]);
+        return UserStatus::tryFrom($this->status) ?? UserStatus::INACTIVE;
+    }
+
+    /**
+     * Sets the user status from enum.
+     */
+    public function setUserStatus(UserStatus $status): void
+    {
+        $this->status = $status->value;
+    }
+
+    /**
+     * Gets the user role as enum.
+     */
+    public function getUserRole(): UserRole
+    {
+        return UserRole::tryFrom($this->role) ?? UserRole::USER;
+    }
+
+    /**
+     * Sets the user role from enum.
+     */
+    public function setUserRole(UserRole $role): void
+    {
+        $this->role = $role->value;
     }
 
     /**
      * {@inheritdoc}
      */
-    public static function findIdentityByAccessToken($token, $type = null)
+    public static function findIdentity($id): ?self
     {
-        return static::findOne(['access_token' => $token, 'status' => self::STATUS_ACTIVE]);
+        return static::findOne(['id' => $id, 'status' => UserStatus::ACTIVE->value]);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function findIdentityByAccessToken($token, $type = null): ?self
+    {
+        return static::findOne(['access_token' => $token, 'status' => UserStatus::ACTIVE->value]);
     }
 
     /**
@@ -120,7 +149,7 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public static function findByUsername(string $username): ?self
     {
-        return static::findOne(['username' => $username, 'status' => self::STATUS_ACTIVE]);
+        return static::findOne(['username' => $username, 'status' => UserStatus::ACTIVE->value]);
     }
 
     /**
@@ -128,7 +157,7 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public static function findByEmail(string $email): ?self
     {
-        return static::findOne(['email' => $email, 'status' => self::STATUS_ACTIVE]);
+        return static::findOne(['email' => $email, 'status' => UserStatus::ACTIVE->value]);
     }
 
     /**
@@ -137,7 +166,7 @@ class User extends ActiveRecord implements IdentityInterface
     public static function findByUsernameOrEmail(string $identity): ?self
     {
         return static::find()
-            ->where(['status' => self::STATUS_ACTIVE])
+            ->where(['status' => UserStatus::ACTIVE->value])
             ->andWhere(['or', ['username' => $identity], ['email' => $identity]])
             ->one();
     }
@@ -145,7 +174,7 @@ class User extends ActiveRecord implements IdentityInterface
     /**
      * {@inheritdoc}
      */
-    public function getId()
+    public function getId(): int
     {
         return $this->id;
     }
@@ -153,7 +182,7 @@ class User extends ActiveRecord implements IdentityInterface
     /**
      * {@inheritdoc}
      */
-    public function getAuthKey()
+    public function getAuthKey(): ?string
     {
         return $this->auth_key;
     }
@@ -161,7 +190,7 @@ class User extends ActiveRecord implements IdentityInterface
     /**
      * {@inheritdoc}
      */
-    public function validateAuthKey($authKey)
+    public function validateAuthKey($authKey): bool
     {
         return $this->auth_key === $authKey;
     }
@@ -211,22 +240,17 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public function getDisplayName(): string
     {
-        if ($this->profile && $this->profile->display_name) {
-            return $this->profile->display_name;
-        }
-        return $this->username;
+        return $this->profile?->display_name ?? $this->username;
     }
 
     /**
      * Returns status labels.
+     * 
+     * @return array<int, string>
      */
     public static function getStatusLabels(): array
     {
-        return [
-            self::STATUS_INACTIVE => 'Неактивен',
-            self::STATUS_ACTIVE => 'Активен',
-            self::STATUS_BANNED => 'Заблокирован',
-        ];
+        return UserStatus::labels();
     }
 
     /**
@@ -234,19 +258,17 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public function getStatusLabel(): string
     {
-        return self::getStatusLabels()[$this->status] ?? 'Неизвестно';
+        return $this->getUserStatus()->label();
     }
 
     /**
      * Returns role labels.
+     * 
+     * @return array<string, string>
      */
     public static function getRoleLabels(): array
     {
-        return [
-            self::ROLE_USER => 'Пользователь',
-            self::ROLE_AUTHOR => 'Автор',
-            self::ROLE_ADMIN => 'Администратор',
-        ];
+        return UserRole::labels();
     }
 
     /**
@@ -254,7 +276,7 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public function getRoleLabel(): string
     {
-        return self::getRoleLabels()[$this->role] ?? 'Неизвестно';
+        return $this->getUserRole()->label();
     }
 
     /**
@@ -262,7 +284,7 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN;
+        return $this->getUserRole() === UserRole::ADMIN;
     }
 
     /**
@@ -270,7 +292,7 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public function isAuthor(): bool
     {
-        return $this->role === self::ROLE_AUTHOR;
+        return $this->getUserRole() === UserRole::AUTHOR;
     }
 
     /**
@@ -278,17 +300,17 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public function canCreatePublication(): bool
     {
-        return $this->role === self::ROLE_ADMIN || $this->role === self::ROLE_AUTHOR;
+        return $this->getUserRole()->canCreatePublication();
     }
 
     /**
      * Checks if user can edit a specific publication.
      */
-    public function canEditPublication(\app\models\Publication $publication): bool
+    public function canEditPublication(Publication $publication): bool
     {
-        if ($this->role === self::ROLE_ADMIN) {
+        if ($this->isAdmin()) {
             return true;
         }
-        return $this->role === self::ROLE_AUTHOR && $publication->author_id === $this->id;
+        return $this->isAuthor() && $publication->author_id === $this->id;
     }
 }

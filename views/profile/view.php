@@ -3,6 +3,7 @@
 use yii\helpers\Html;
 use app\models\Publication;
 use app\models\Favorite;
+use app\enums\PublicationStatus;
 
 /** @var yii\web\View $this */
 /** @var app\models\User $user */
@@ -14,7 +15,7 @@ $profile = $user->profile;
 $isOwner = !Yii::$app->user->isGuest && Yii::$app->user->id === $user->id;
 $publicationsCount = Publication::find()
     ->where(['author_id' => $user->id])
-    ->andFilterWhere(['status' => $isOwner ? null : Publication::STATUS_PUBLISHED])
+    ->andFilterWhere(['status' => $isOwner ? null : PublicationStatus::PUBLISHED->value])
     ->count();
 $favoritesCount = Favorite::find()->where(['user_id' => $user->id])->count();
 ?>

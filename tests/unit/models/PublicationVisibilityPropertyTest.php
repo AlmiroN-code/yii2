@@ -2,6 +2,7 @@
 
 namespace tests\unit\models;
 
+use app\enums\PublicationStatus;
 use app\models\Publication;
 use app\models\Category;
 use app\models\Tag;
@@ -71,7 +72,7 @@ class PublicationVisibilityPropertyTest extends \Codeception\Test\Unit
                     $publication = new Publication();
                     $publication->title = 'Draft Publication ' . uniqid();
                     $publication->content = 'Draft content ' . $i;
-                    $publication->status = Publication::STATUS_DRAFT;
+                    $publication->setPublicationStatus(PublicationStatus::DRAFT);
                     
                     $this->assertTrue($publication->save(), 'Draft publication should be saved');
                     $draftIds[] = $publication->id;
@@ -82,7 +83,7 @@ class PublicationVisibilityPropertyTest extends \Codeception\Test\Unit
                     $publication = new Publication();
                     $publication->title = 'Published Publication ' . uniqid();
                     $publication->content = 'Published content ' . $i;
-                    $publication->status = Publication::STATUS_PUBLISHED;
+                    $publication->setPublicationStatus(PublicationStatus::PUBLISHED);
                     
                     $this->assertTrue($publication->save(), 'Published publication should be saved');
                     $publishedIds[] = $publication->id;
@@ -122,7 +123,7 @@ class PublicationVisibilityPropertyTest extends \Codeception\Test\Unit
                 // Verify status change affects visibility
                 if (!empty($draftIds)) {
                     $draftToPublish = Publication::findOne($draftIds[0]);
-                    $draftToPublish->status = Publication::STATUS_PUBLISHED;
+                    $draftToPublish->setPublicationStatus(PublicationStatus::PUBLISHED);
                     $draftToPublish->save();
 
                     $newVisiblePublications = Publication::findPublished()->all();
@@ -139,7 +140,7 @@ class PublicationVisibilityPropertyTest extends \Codeception\Test\Unit
 
                 if (!empty($publishedIds)) {
                     $publishedToDraft = Publication::findOne($publishedIds[0]);
-                    $publishedToDraft->status = Publication::STATUS_DRAFT;
+                    $publishedToDraft->setPublicationStatus(PublicationStatus::DRAFT);
                     $publishedToDraft->save();
 
                     $finalVisiblePublications = Publication::findPublished()->all();

@@ -1,10 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace app\modules\admin\controllers;
 
+use app\enums\PublicationStatus;
 use app\models\Category;
 use app\models\Publication;
 use app\models\Tag;
+use app\repositories\PublicationRepositoryInterface;
+use app\services\PublicationServiceInterface;
 use Yii;
 use yii\data\ActiveDataProvider;
 use yii\web\Controller;
@@ -14,15 +19,25 @@ use yii\filters\AccessControl;
 use yii\filters\VerbFilter;
 
 /**
- * PublicationController implements CRUD actions for Publication model.
- * Requirements: 1.1, 1.2, 1.3, 1.4, 5.3
+ * PublicationController implements CRUD actions for Publication model in admin panel.
+ * Requirements: 2.1, 3.3, 4.1
  */
 class PublicationController extends Controller
 {
+    public function __construct(
+        $id,
+        $module,
+        private readonly PublicationServiceInterface $publicationService,
+        private readonly PublicationRepositoryInterface $publicationRepository,
+        array $config = []
+    ) {
+        parent::__construct($id, $module, $config);
+    }
+
     /**
      * {@inheritdoc}
      */
-    public function behaviors()
+    public function behaviors(): array
     {
         return [
             'access' => [
@@ -41,6 +56,8 @@ class PublicationController extends Controller
                 'class' => VerbFilter::class,
                 'actions' => [
                     'delete' => ['POST'],
+                    'publish' => ['POST'],
+                    'archive' => ['POST'],
                 ],
             ],
         ];
@@ -48,11 +65,24 @@ class PublicationController extends Controller
 
     /**
      * Lists all Publication models.
+     * Requirements: 2.1, 4.1
      */
-    public function actionIndex()
+    public function actionIndex(): string
     {
+        $status = Yii::$app->request->get('status');
+        
+        $query = Publication::find()->with(['category', 'tags', 'author']);
+        
+        // Фильтрация по статусу с использованием enum
+        if ($status !== null) {
+            $statusEnum = PublicationStatus::tryFrom($status);
+            if ($statusEnum !== null) {
+                $query->andWhere(['status' => $statusEnum->value]);
+            }
+        }
+        
         $dataProvider = new ActiveDataProvider([
-            'query' => Publication::find()->with(['category', 'tags']),
+            'query' => $query,
             'sort' => [
                 'defaultOrder' => ['created_at' => SORT_DESC],
             ],
@@ -63,12 +93,14 @@ class PublicationController extends Controller
 
         return $this->render('index', [
             'dataProvider' => $dataProvider,
+            'statuses' => PublicationStatus::labels(),
+            'currentStatus' => $status,
         ]);
     }
 
-
     /**
      * Creates a new Publication model.
+     * Requirements: 3.3
      */
     public function actionCreate()
     {
@@ -80,6 +112,9 @@ class PublicationController extends Controller
             // Handle image upload
             $this->handleImageUpload($model);
             
+            // Устанавливаем автора (админ)
+            $model->author_id = Yii::$app->user->id;
+            
             if ($model->save()) {
                 Yii::$app->session->setFlash('success', 'Публикация успешно создана.');
                 return $this->redirect(['index']);
@@ -90,13 +125,15 @@ class PublicationController extends Controller
             'model' => $model,
             'categories' => $this->getCategoryList(),
             'tags' => Tag::find()->orderBy('name')->all(),
+            'statuses' => PublicationStatus::labels(),
         ]);
     }
 
     /**
      * Updates an existing Publication model.
+     * Requirements: 3.3, 4.1
      */
-    public function actionUpdate($id)
+    public function actionUpdate(int $id)
     {
         $model = $this->findModel($id);
         $model->tagIds = $model->getTagIds();
@@ -117,44 +154,86 @@ class PublicationController extends Controller
             'model' => $model,
             'categories' => $this->getCategoryList(),
             'tags' => Tag::find()->orderBy('name')->all(),
+            'statuses' => PublicationStatus::labels(),
         ]);
     }
 
     /**
-     * Deletes an existing Publication model.
+     * Publishes a publication.
+     * Requirements: 3.3, 4.1
      */
-    public function actionDelete($id)
+    public function actionPublish(int $id)
     {
         $model = $this->findModel($id);
         
-        // Delete featured image if exists
-        if ($model->featured_image) {
-            $imagePath = Yii::getAlias('@webroot') . $model->featured_image;
-            if (file_exists($imagePath)) {
-                unlink($imagePath);
-            }
+        if ($this->publicationService->publish($model)) {
+            Yii::$app->session->setFlash('success', 'Публикация опубликована.');
+        } else {
+            Yii::$app->session->setFlash('error', 'Не удалось опубликовать публикацию.');
         }
         
-        $model->delete();
-        Yii::$app->session->setFlash('success', 'Публикация успешно удалена.');
+        return $this->redirect(['index']);
+    }
+
+    /**
+     * Archives a publication.
+     * Requirements: 3.3, 4.1
+     */
+    public function actionArchive(int $id)
+    {
+        $model = $this->findModel($id);
+        
+        if ($this->publicationService->archive($model)) {
+            Yii::$app->session->setFlash('success', 'Публикация архивирована.');
+        } else {
+            Yii::$app->session->setFlash('error', 'Не удалось архивировать публикацию.');
+        }
+        
+        return $this->redirect(['index']);
+    }
+
+    /**
+     * Deletes an existing Publication model.
+     * Requirements: 3.3
+     */
+    public function actionDelete(int $id)
+    {
+        $model = $this->findModel($id);
+        
+        if ($this->publicationService->delete($model)) {
+            // Delete featured image if exists
+            if ($model->featured_image) {
+                $imagePath = Yii::getAlias('@webroot') . $model->featured_image;
+                if (file_exists($imagePath)) {
+                    unlink($imagePath);
+                }
+            }
+            Yii::$app->session->setFlash('success', 'Публикация успешно удалена.');
+        } else {
+            Yii::$app->session->setFlash('error', 'Не удалось удалить публикацию.');
+        }
 
         return $this->redirect(['index']);
     }
 
     /**
      * Finds the Publication model based on its primary key value.
+     * @throws NotFoundHttpException
      */
-    protected function findModel($id)
+    protected function findModel(int $id): Publication
     {
-        if (($model = Publication::findOne(['id' => $id])) !== null) {
-            return $model;
+        $model = $this->publicationRepository->findById($id);
+        
+        if ($model === null) {
+            throw new NotFoundHttpException('Публикация не найдена.');
         }
 
-        throw new NotFoundHttpException('Публикация не найдена.');
+        return $model;
     }
 
     /**
      * Returns category list for dropdown.
+     * @return array<int, string>
      */
     protected function getCategoryList(): array
     {

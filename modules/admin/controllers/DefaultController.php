@@ -5,6 +5,7 @@ namespace app\modules\admin\controllers;
 use app\models\Category;
 use app\models\Publication;
 use app\models\Tag;
+use app\enums\PublicationStatus;
 use Yii;
 use yii\web\Controller;
 use yii\filters\AccessControl;
@@ -43,8 +44,8 @@ class DefaultController extends Controller
     public function actionIndex()
     {
         $publicationsCount = Publication::find()->count();
-        $publishedCount = Publication::find()->where(['status' => Publication::STATUS_PUBLISHED])->count();
-        $draftCount = Publication::find()->where(['status' => Publication::STATUS_DRAFT])->count();
+        $publishedCount = Publication::find()->where(['status' => PublicationStatus::PUBLISHED->value])->count();
+        $draftCount = Publication::find()->where(['status' => PublicationStatus::DRAFT->value])->count();
         $categoriesCount = Category::find()->count();
         $tagsCount = Tag::find()->count();
 

@@ -2,6 +2,13 @@
 
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
+$container = require __DIR__ . '/container.php';
+
+// Регистрация зависимостей в DI контейнере
+// Requirements: 3.1, 3.2
+foreach ($container['definitions'] as $interface => $implementation) {
+    Yii::$container->set($interface, $implementation);
+}
 
 $config = [
     'id' => 'basic',

@@ -3,7 +3,7 @@
 use yii\helpers\Html;
 use yii\helpers\Url;
 use yii\widgets\LinkPager;
-use app\models\Publication;
+use app\enums\PublicationStatus;
 
 /** @var yii\web\View $this */
 /** @var app\models\User $user */
@@ -69,11 +69,11 @@ $isOwner = !Yii::$app->user->isGuest && Yii::$app->user->id === $user->id;
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
                                 <h3 class="text-lg font-semibold text-gray-900">
-                                    <?php if ($publication->status === Publication::STATUS_PUBLISHED): ?>
+                                    <?php if ($publication->getPublicationStatus() === PublicationStatus::PUBLISHED): ?>
                                         <?= Html::a(Html::encode($publication->title), ['/publication/view', 'slug' => $publication->slug], ['class' => 'hover:text-blue-600']) ?>
                                     <?php else: ?>
                                         <?= Html::encode($publication->title) ?>
-                                        <span class="ml-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">Черновик</span>
+                                        <span class="ml-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full"><?= $publication->getStatusLabel() ?></span>
                                     <?php endif; ?>
                                 </h3>
                                 <?php if ($publication->excerpt): ?>

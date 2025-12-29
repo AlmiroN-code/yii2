@@ -2,10 +2,11 @@
 
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
-use app\models\User;
 
 /** @var yii\web\View $this */
 /** @var app\models\User $model */
+/** @var array $roles */
+/** @var array $statuses */
 
 $this->title = 'Редактирование: ' . $model->username;
 $this->params['breadcrumbs'][] = ['label' => 'Пользователи', 'url' => ['index']];
@@ -41,14 +42,14 @@ $this->params['breadcrumbs'][] = $model->username;
             'labelOptions' => ['class' => 'block text-sm font-medium text-gray-700 mb-1'],
             'inputOptions' => ['class' => 'w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'],
             'errorOptions' => ['class' => 'text-red-500 text-sm mt-1'],
-        ])->dropDownList(User::getRoleLabels()) ?>
+        ])->dropDownList($roles) ?>
 
         <?= $form->field($model, 'status', [
             'options' => ['class' => ''],
             'labelOptions' => ['class' => 'block text-sm font-medium text-gray-700 mb-1'],
             'inputOptions' => ['class' => 'w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'],
             'errorOptions' => ['class' => 'text-red-500 text-sm mt-1'],
-        ])->dropDownList(User::getStatusLabels()) ?>
+        ])->dropDownList($statuses) ?>
 
         <div class="flex gap-4 pt-4">
             <?= Html::submitButton('Сохранить', ['class' => 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2']) ?>

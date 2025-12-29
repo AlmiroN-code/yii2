@@ -1,22 +1,31 @@
 <?php
 
+declare(strict_types=1);
+
 namespace app\services;
 
 use Yii;
 use yii\data\ActiveDataProvider;
-use app\models\Publication;
-use app\models\Category;
-use app\models\Tag;
+use app\repositories\PublicationRepositoryInterface;
+use app\repositories\CategoryRepositoryInterface;
+use app\repositories\TagRepositoryInterface;
 
 /**
  * SearchService - сервис поиска.
- * Requirements: 7.2, 7.6
+ * Requirements: 2.1, 2.3, 2.4, 3.4
  */
 class SearchService
 {
+    public function __construct(
+        private readonly PublicationRepositoryInterface $publicationRepository,
+        private readonly CategoryRepositoryInterface $categoryRepository,
+        private readonly TagRepositoryInterface $tagRepository
+    ) {
+    }
+
     /**
      * Autocomplete search.
-     * Requirements: 7.2
+     * Requirements: 2.1, 2.3, 2.4
      */
     public function autocomplete(string $query, int $limit = 10): array
     {
@@ -27,9 +36,8 @@ class SearchService
 
         $results = [];
 
-        // Search publications
-        $publications = Publication::find()
-            ->where(['status' => Publication::STATUS_PUBLISHED])
+        // Search publications using repository
+        $publications = $this->publicationRepository->findPublished()
             ->andWhere(['like', 'title', $query])
             ->limit(5)
             ->all();
@@ -43,13 +51,15 @@ class SearchService
             ];
         }
 
-        // Search categories
-        $categories = Category::find()
-            ->where(['like', 'name', $query])
-            ->limit(3)
-            ->all();
 
-        foreach ($categories as $cat) {
+        // Search categories using repository
+        $categories = $this->categoryRepository->findAll();
+        $filteredCategories = array_filter($categories, function ($cat) use ($query) {
+            return mb_stripos($cat->name, $query) !== false;
+        });
+        $filteredCategories = \array_slice($filteredCategories, 0, 3);
+
+        foreach ($filteredCategories as $cat) {
             $results[] = [
                 'type' => 'category',
                 'title' => $cat->name,
@@ -58,13 +68,14 @@ class SearchService
             ];
         }
 
-        // Search tags
-        $tags = Tag::find()
-            ->where(['like', 'name', $query])
-            ->limit(3)
-            ->all();
+        // Search tags using repository
+        $tags = $this->tagRepository->findAll();
+        $filteredTags = array_filter($tags, function ($tag) use ($query) {
+            return mb_stripos($tag->name, $query) !== false;
+        });
+        $filteredTags = \array_slice($filteredTags, 0, 3);
 
-        foreach ($tags as $tag) {
+        foreach ($filteredTags as $tag) {
             $results[] = [
                 'type' => 'tag',
                 'title' => $tag->name,
@@ -73,19 +84,19 @@ class SearchService
             ];
         }
 
-        return array_slice($results, 0, $limit);
+        return \array_slice($results, 0, $limit);
     }
 
     /**
      * Full search with pagination.
+     * Requirements: 2.1
      */
     public function search(string $query, int $pageSize = 10): ActiveDataProvider
     {
         $query = trim($query);
 
         return new ActiveDataProvider([
-            'query' => Publication::find()
-                ->where(['status' => Publication::STATUS_PUBLISHED])
+            'query' => $this->publicationRepository->findPublished()
                 ->andWhere([
                     'or',
                     ['like', 'title', $query],

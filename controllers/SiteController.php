@@ -9,6 +9,7 @@ use yii\web\Response;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
+use app\enums\PublicationStatus;
 
 class SiteController extends Controller
 {
@@ -64,7 +65,7 @@ class SiteController extends Controller
         $featuredCount = (int)\app\models\Setting::get('homepage_featured_count', '6');
         
         $publications = \app\models\Publication::find()
-            ->where(['status' => \app\models\Publication::STATUS_PUBLISHED])
+            ->where(['status' => PublicationStatus::PUBLISHED->value])
             ->orderBy(['published_at' => SORT_DESC, 'created_at' => SORT_DESC])
             ->limit($featuredCount)
             ->all();

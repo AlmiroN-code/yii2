@@ -3,7 +3,7 @@
 use yii\helpers\Html;
 use yii\helpers\Url;
 use yii\widgets\LinkPager;
-use app\models\Publication;
+use app\enums\PublicationStatus;
 
 /** @var yii\web\View $this */
 /** @var yii\data\ActiveDataProvider $dataProvider */
@@ -23,8 +23,8 @@ $this->params['breadcrumbs'][] = $this->title;
     <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
         <div class="flex gap-4">
             <?= Html::a('Все', ['my'], ['class' => 'px-3 py-1 rounded-md ' . ($currentStatus === null ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100')]) ?>
-            <?= Html::a('Опубликованные', ['my', 'status' => Publication::STATUS_PUBLISHED], ['class' => 'px-3 py-1 rounded-md ' . ($currentStatus === Publication::STATUS_PUBLISHED ? 'bg-green-100 text-green-800' : 'text-gray-600 hover:bg-gray-100')]) ?>
-            <?= Html::a('Черновики', ['my', 'status' => Publication::STATUS_DRAFT], ['class' => 'px-3 py-1 rounded-md ' . ($currentStatus === Publication::STATUS_DRAFT ? 'bg-yellow-100 text-yellow-800' : 'text-gray-600 hover:bg-gray-100')]) ?>
+            <?= Html::a('Опубликованные', ['my', 'status' => PublicationStatus::PUBLISHED->value], ['class' => 'px-3 py-1 rounded-md ' . ($currentStatus === PublicationStatus::PUBLISHED->value ? 'bg-green-100 text-green-800' : 'text-gray-600 hover:bg-gray-100')]) ?>
+            <?= Html::a('Черновики', ['my', 'status' => PublicationStatus::DRAFT->value], ['class' => 'px-3 py-1 rounded-md ' . ($currentStatus === PublicationStatus::DRAFT->value ? 'bg-yellow-100 text-yellow-800' : 'text-gray-600 hover:bg-gray-100')]) ?>
         </div>
     </div>
 
@@ -55,8 +55,9 @@ $this->params['breadcrumbs'][] = $this->title;
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <?php
                                 $statusColors = [
-                                    Publication::STATUS_PUBLISHED => 'bg-green-100 text-green-800',
-                                    Publication::STATUS_DRAFT => 'bg-yellow-100 text-yellow-800',
+                                    PublicationStatus::PUBLISHED->value => 'bg-green-100 text-green-800',
+                                    PublicationStatus::DRAFT->value => 'bg-yellow-100 text-yellow-800',
+                                    PublicationStatus::ARCHIVED->value => 'bg-gray-100 text-gray-800',
                                 ];
                                 $statusColor = $statusColors[$publication->status] ?? 'bg-gray-100 text-gray-800';
                                 ?>
@@ -74,7 +75,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                 <?= $publication->getApprovedComments()->count() ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <?php if ($publication->status === Publication::STATUS_PUBLISHED): ?>
+                                <?php if ($publication->getPublicationStatus() === PublicationStatus::PUBLISHED): ?>
                                     <?= Html::a('Просмотр', ['view', 'slug' => $publication->slug], ['class' => 'text-gray-600 hover:text-gray-900 mr-3', 'target' => '_blank']) ?>
                                 <?php endif; ?>
                                 <?= Html::a('Редактировать', ['update', 'id' => $publication->id], ['class' => 'text-blue-600 hover:text-blue-900 mr-3']) ?>
