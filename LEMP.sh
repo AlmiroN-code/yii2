@@ -164,7 +164,19 @@ return [
 DBEOF
 log_success "config/db.php создан"
 
-# === 12. Production режим и Cookie Validation Key ===
+# === 12. Генерируем cookieValidationKey ===
+log_info "Генерирую cookieValidationKey..."
+COOKIE_KEY=$(openssl rand -base64 32)
+sed -i "s/'cookieValidationKey' => '[^']*'/'cookieValidationKey' => '$COOKIE_KEY'/" "$SITE_ROOT/config/web.php" 2>/dev/null || true
+log_success "cookieValidationKey установлен"
+
+# === 13. Composer зависимости ===
+log_info "Устанавливаю Composer зависимости..."
+cd "$SITE_ROOT"
+composer install --no-dev --optimize-autoloader --no-interaction
+log_success "Composer установлен"
+
+# === 13.1. Production режим (ПОСЛЕ composer install) ===
 log_info "Настраиваю Yii2 для production..."
 
 # Создаём production версию web/index.php
@@ -207,17 +219,7 @@ YIIEOF
 
 chmod +x "$SITE_ROOT/yii"
 
-# Генерируем cookieValidationKey
-COOKIE_KEY=$(openssl rand -base64 32)
-sed -i "s/'cookieValidationKey' => '[^']*'/'cookieValidationKey' => '$COOKIE_KEY'/" "$SITE_ROOT/config/web.php" 2>/dev/null || true
-
-log_success "Production режим и cookieValidationKey установлены"
-
-# === 13. Composer зависимости ===
-log_info "Устанавливаю Composer зависимости..."
-cd "$SITE_ROOT"
-composer install --no-dev --optimize-autoloader --no-interaction
-log_success "Composer установлен"
+log_success "Production режим установлен"
 
 # === 14. NPM зависимости и сборка ===
 log_info "Устанавливаю npm зависимости..."
