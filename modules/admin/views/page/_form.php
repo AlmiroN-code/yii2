@@ -1,8 +1,7 @@
 <?php
 
 /** @var yii\web\View $this */
-/** @var app\models\Category $model */
-/** @var array $parentCategories */
+/** @var app\models\Page $model */
 
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
@@ -13,81 +12,67 @@ use yii\widgets\ActiveForm;
     <?php $form = ActiveForm::begin(); ?>
     
     <div class="px-4 py-5 sm:p-6">
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <!-- Name -->
-            <div class="sm:col-span-2">
-                <?= $form->field($model, 'name', [
-                    'options' => ['class' => ''],
+        <div class="grid grid-cols-1 gap-6">
+            <div>
+                <?= $form->field($model, 'title', [
                     'labelOptions' => ['class' => 'block text-sm font-medium text-gray-700'],
                     'inputOptions' => ['class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'],
                     'errorOptions' => ['class' => 'mt-1 text-sm text-red-600'],
                 ]) ?>
             </div>
 
-            <!-- Slug -->
-            <div class="sm:col-span-2">
+            <div>
                 <?= $form->field($model, 'slug', [
-                    'options' => ['class' => ''],
                     'labelOptions' => ['class' => 'block text-sm font-medium text-gray-700'],
                     'inputOptions' => ['class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm', 'placeholder' => 'Оставьте пустым для автогенерации'],
                     'errorOptions' => ['class' => 'mt-1 text-sm text-red-600'],
                 ]) ?>
             </div>
 
-            <!-- Parent Category -->
             <div>
-                <?= $form->field($model, 'parent_id', [
-                    'options' => ['class' => ''],
-                    'labelOptions' => ['class' => 'block text-sm font-medium text-gray-700'],
-                    'errorOptions' => ['class' => 'mt-1 text-sm text-red-600'],
-                ])->dropDownList($parentCategories, [
-                    'class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
-                    'prompt' => '-- Без родителя --'
-                ]) ?>
-            </div>
-
-            <!-- Sort Order -->
-            <div>
-                <?= $form->field($model, 'sort_order', [
-                    'options' => ['class' => ''],
-                    'labelOptions' => ['class' => 'block text-sm font-medium text-gray-700'],
-                    'inputOptions' => ['class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm', 'type' => 'number'],
-                    'errorOptions' => ['class' => 'mt-1 text-sm text-red-600'],
-                ]) ?>
-            </div>
-
-            <!-- Description -->
-            <div class="sm:col-span-2">
-                <?= $form->field($model, 'description', [
-                    'options' => ['class' => ''],
+                <?= $form->field($model, 'content', [
                     'labelOptions' => ['class' => 'block text-sm font-medium text-gray-700'],
                     'errorOptions' => ['class' => 'mt-1 text-sm text-red-600'],
                 ])->textarea([
                     'class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
-                    'rows' => 3
+                    'rows' => 15,
+                    'id' => 'page-content',
                 ]) ?>
             </div>
 
-            <!-- SEO Fields -->
-            <div class="sm:col-span-2 border-t border-gray-200 pt-6 mt-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                    <?= $form->field($model, 'is_active', [
+                        'labelOptions' => ['class' => 'block text-sm font-medium text-gray-700'],
+                    ])->checkbox([
+                        'class' => 'h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500',
+                    ]) ?>
+                </div>
+
+                <div>
+                    <?= $form->field($model, 'sort_order', [
+                        'labelOptions' => ['class' => 'block text-sm font-medium text-gray-700'],
+                        'inputOptions' => ['class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm', 'type' => 'number'],
+                        'errorOptions' => ['class' => 'mt-1 text-sm text-red-600'],
+                    ]) ?>
+                </div>
+            </div>
+
+            <!-- SEO -->
+            <div class="border-t border-gray-200 pt-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">SEO настройки</h3>
             </div>
 
-            <div class="sm:col-span-2">
+            <div>
                 <?= $form->field($model, 'meta_title', [
-                    'options' => ['class' => ''],
                     'labelOptions' => ['class' => 'block text-sm font-medium text-gray-700'],
-                    'inputOptions' => [
-                        'class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
-                        'maxlength' => 60,
-                    ],
+                    'inputOptions' => ['class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm', 'maxlength' => 60],
                     'errorOptions' => ['class' => 'mt-1 text-sm text-red-600'],
                 ])->hint('Максимум 60 символов') ?>
             </div>
 
-            <div class="sm:col-span-2">
+            <div>
                 <?= $form->field($model, 'meta_description', [
-                    'options' => ['class' => ''],
                     'labelOptions' => ['class' => 'block text-sm font-medium text-gray-700'],
                     'errorOptions' => ['class' => 'mt-1 text-sm text-red-600'],
                 ])->textarea([

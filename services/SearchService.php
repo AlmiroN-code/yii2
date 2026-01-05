@@ -16,11 +16,18 @@ use app\repositories\TagRepositoryInterface;
  */
 class SearchService
 {
+    private $publicationRepository;
+    private $categoryRepository;
+    private $tagRepository;
+
     public function __construct(
-        private readonly PublicationRepositoryInterface $publicationRepository,
-        private readonly CategoryRepositoryInterface $categoryRepository,
-        private readonly TagRepositoryInterface $tagRepository
+        PublicationRepositoryInterface $publicationRepository,
+        CategoryRepositoryInterface $categoryRepository,
+        TagRepositoryInterface $tagRepository
     ) {
+        $this->publicationRepository = $publicationRepository;
+        $this->categoryRepository = $categoryRepository;
+        $this->tagRepository = $tagRepository;
     }
 
     /**

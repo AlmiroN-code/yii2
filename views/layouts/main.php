@@ -34,6 +34,11 @@ $this->registerMetaTag(['name' => 'viewport', 'content' => 'width=device-width, 
 $this->registerMetaTag(['name' => 'description', 'content' => $this->params['meta_description'] ?? $siteDescription]);
 $this->registerMetaTag(['name' => 'keywords', 'content' => $this->params['meta_keywords'] ?? $siteKeywords]);
 
+// SEO Component - регистрация мета-тегов и Schema.org
+if (Yii::$app->has('seo')) {
+    Yii::$app->seo->registerAll($this);
+}
+
 // Favicon
 if ($siteFavicon) {
     $this->registerLinkTag(['rel' => 'icon', 'href' => $siteFavicon]);

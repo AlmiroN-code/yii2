@@ -10,9 +10,18 @@ use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
 use app\enums\PublicationStatus;
+use app\services\SeoServiceInterface;
 
 class SiteController extends Controller
 {
+    private SeoServiceInterface $seoService;
+
+    public function __construct($id, $module, SeoServiceInterface $seoService, $config = [])
+    {
+        $this->seoService = $seoService;
+        parent::__construct($id, $module, $config);
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -70,6 +79,9 @@ class SiteController extends Controller
             ->limit($featuredCount)
             ->all();
 
+        // SEO: Schema.org WebSite
+        Yii::$app->seo->setSchemaOrg($this->seoService->getWebsiteSchema());
+
         return $this->render('index', [
             'publications' => $publications,
             'settings' => [
@@ -80,6 +92,52 @@ class SiteController extends Controller
                 'show_tags' => \app\models\Setting::get('homepage_show_tags', '1') === '1',
             ],
         ]);
+    }
+
+    /**
+     * Returns sitemap.xml content.
+     * Requirements: 8.4
+     */
+    public function actionSitemap(): Response
+    {
+        $path = Yii::getAlias('@webroot/sitemap.xml');
+        
+        if (!file_exists($path)) {
+            // Генерируем sitemap если не существует
+            $this->seoService->generateSitemap();
+        }
+
+        $content = file_get_contents($path);
+        
+        return Yii::$app->response->sendContentAsFile(
+            $content,
+            'sitemap.xml',
+            [
+                'mimeType' => 'application/xml',
+                'inline' => true,
+            ]
+        );
+    }
+
+    /**
+     * Returns robots.txt content.
+     * Requirements: 8.5
+     */
+    public function actionRobots(): Response
+    {
+        $content = $this->seoService->getRobotsContent();
+        
+        Yii::$app->response->format = Response::FORMAT_RAW;
+        Yii::$app->response->headers->set('Content-Type', 'text/plain');
+        
+        return Yii::$app->response->sendContentAsFile(
+            $content,
+            'robots.txt',
+            [
+                'mimeType' => 'text/plain',
+                'inline' => true,
+            ]
+        );
     }
 
     /**

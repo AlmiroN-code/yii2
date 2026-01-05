@@ -16,12 +16,15 @@ use app\components\Breadcrumbs;
  */
 class SearchController extends Controller
 {
+    private $searchService;
+
     public function __construct(
         $id,
         $module,
-        private readonly SearchService $searchService,
+        SearchService $searchService,
         array $config = []
     ) {
+        $this->searchService = $searchService;
         parent::__construct($id, $module, $config);
     }
 

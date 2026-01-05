@@ -94,7 +94,7 @@ class PublicationController extends Controller
 
     /**
      * Displays a single publication by slug.
-     * Requirements: 2.1, 4.1
+     * Requirements: 2.1, 4.1, 8.2, 8.7, 8.8
      */
     public function actionView(string $slug): string
     {
@@ -112,6 +112,26 @@ class PublicationController extends Controller
 
         // Breadcrumbs
         $this->view->params['breadcrumbs'] = \app\components\Breadcrumbs::forPublication($model);
+
+        // SEO: Meta tags
+        $seo = Yii::$app->seo;
+        $seo->title = $model->meta_title ?: $model->title;
+        $seo->description = $model->meta_description ?: mb_substr(strip_tags($model->content), 0, 160);
+        $seo->canonicalUrl = \yii\helpers\Url::to(['/publication/view', 'slug' => $model->slug], true);
+        
+        // SEO: Open Graph
+        $seo->ogTags = [
+            'og:title' => $model->meta_title ?: $model->title,
+            'og:description' => $model->meta_description ?: mb_substr(strip_tags($model->content), 0, 160),
+            'og:type' => 'article',
+            'og:url' => \yii\helpers\Url::to(['/publication/view', 'slug' => $model->slug], true),
+            'og:image' => $model->featured_image ? \yii\helpers\Url::to($model->featured_image, true) : null,
+        ];
+
+        // SEO: Schema.org Article
+        /** @var \app\services\SeoServiceInterface $seoService */
+        $seoService = Yii::$container->get(\app\services\SeoServiceInterface::class);
+        $seo->schemaOrg = $seoService->getArticleSchema($model);
 
         return $this->render('view', [
             'model' => $model,

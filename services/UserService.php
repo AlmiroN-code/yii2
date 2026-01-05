@@ -17,9 +17,12 @@ use Yii;
  */
 class UserService implements UserServiceInterface
 {
+    private $userRepository;
+
     public function __construct(
-        private readonly UserRepositoryInterface $userRepository
+        UserRepositoryInterface $userRepository
     ) {
+        $this->userRepository = $userRepository;
     }
 
     /**
@@ -36,8 +39,8 @@ class UserService implements UserServiceInterface
         }
         
         $user->generateAuthKey();
-        $user->setUserStatus(UserStatus::ACTIVE);
-        $user->setUserRole(UserRole::USER);
+        $user->status = 1; // ACTIVE
+        $user->role = 'user';
         
         if (!$this->userRepository->save($user)) {
             Yii::error('Failed to register user: ' . json_encode($user->errors), __METHOD__);
@@ -116,9 +119,9 @@ class UserService implements UserServiceInterface
     /**
      * {@inheritdoc}
      */
-    public function changeRole(User $user, UserRole $role): bool
+    public function changeRole(User $user, string $role): bool
     {
-        $user->setUserRole($role);
+        $user->role = $role;
         
         if ($this->userRepository->save($user)) {
             return true;
@@ -133,7 +136,7 @@ class UserService implements UserServiceInterface
      */
     public function ban(User $user): bool
     {
-        $user->setUserStatus(UserStatus::BANNED);
+        $user->status = 0; // BANNED
         
         if ($this->userRepository->save($user)) {
             return true;
@@ -148,7 +151,7 @@ class UserService implements UserServiceInterface
      */
     public function activate(User $user): bool
     {
-        $user->setUserStatus(UserStatus::ACTIVE);
+        $user->status = 1; // ACTIVE
         
         if ($this->userRepository->save($user)) {
             return true;

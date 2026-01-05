@@ -27,14 +27,21 @@ use app\components\Breadcrumbs;
  */
 class ProfileController extends Controller
 {
+    private $userService;
+    private $userRepository;
+    private $publicationRepository;
+
     public function __construct(
         $id,
         $module,
-        private readonly UserServiceInterface $userService,
-        private readonly UserRepositoryInterface $userRepository,
-        private readonly PublicationRepositoryInterface $publicationRepository,
+        UserServiceInterface $userService,
+        UserRepositoryInterface $userRepository,
+        PublicationRepositoryInterface $publicationRepository,
         array $config = []
     ) {
+        $this->userService = $userService;
+        $this->userRepository = $userRepository;
+        $this->publicationRepository = $publicationRepository;
         parent::__construct($id, $module, $config);
     }
 
@@ -158,7 +165,7 @@ class ProfileController extends Controller
         
         // Показываем только опубликованные для других пользователей
         if (Yii::$app->user->isGuest || Yii::$app->user->id !== $user->id) {
-            $query->andWhere(['status' => PublicationStatus::PUBLISHED->value]);
+            $query->andWhere(['status' => 'published']);
         }
 
         $dataProvider = new ActiveDataProvider([

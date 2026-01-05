@@ -121,15 +121,28 @@ use yii\widgets\ActiveForm;
             <!-- SEO Fields -->
             <div class="sm:col-span-2 border-t border-gray-200 pt-6 mt-2">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">SEO настройки</h3>
+                
+                <!-- SEO Analysis Panel -->
+                <div id="seo-analysis" class="mb-6 p-4 rounded-lg border" style="display: none;">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="font-medium text-gray-700">SEO оценка:</span>
+                        <span id="seo-score" class="px-3 py-1 rounded-full text-sm font-medium"></span>
+                    </div>
+                    <div id="seo-issues" class="space-y-2"></div>
+                </div>
             </div>
 
             <div class="sm:col-span-2">
                 <?= $form->field($model, 'meta_title', [
                     'options' => ['class' => ''],
                     'labelOptions' => ['class' => 'block text-sm font-medium text-gray-700'],
-                    'inputOptions' => ['class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'],
+                    'inputOptions' => [
+                        'class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
+                        'id' => 'seo-meta-title',
+                        'maxlength' => 60,
+                    ],
                     'errorOptions' => ['class' => 'mt-1 text-sm text-red-600'],
-                ]) ?>
+                ])->hint('<span id="meta-title-count">0</span>/60 символов') ?>
             </div>
 
             <div class="sm:col-span-2">
@@ -139,8 +152,10 @@ use yii\widgets\ActiveForm;
                     'errorOptions' => ['class' => 'mt-1 text-sm text-red-600'],
                 ])->textarea([
                     'class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
-                    'rows' => 2
-                ]) ?>
+                    'rows' => 2,
+                    'id' => 'seo-meta-description',
+                    'maxlength' => 160,
+                ])->hint('<span id="meta-desc-count">0</span>/160 символов (рекомендуется 120-160)') ?>
             </div>
         </div>
     </div>
@@ -205,4 +220,92 @@ JS, \yii\web\View::POS_END);
     border-radius: 0 0 0.375rem 0.375rem;
     border-color: #d1d5db;
 }
+.seo-good { background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+.seo-average { background-color: #fef3c7; color: #92400e; border-color: #fcd34d; }
+.seo-poor { background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; }
 </style>
+
+<?php
+$this->registerJs(<<<JS
+// SEO Analysis
+function analyzeSeo() {
+    var titleField = document.getElementById('seo-meta-title');
+    var descField = document.getElementById('seo-meta-description');
+    var contentField = document.getElementById('content-editor');
+    var analysisPanel = document.getElementById('seo-analysis');
+    var scoreEl = document.getElementById('seo-score');
+    var issuesEl = document.getElementById('seo-issues');
+    
+    if (!titleField || !descField) return;
+    
+    var title = titleField.value || document.getElementById('publication-title')?.value || '';
+    var desc = descField.value || '';
+    var content = contentField?.value || '';
+    
+    // Update counters
+    document.getElementById('meta-title-count').textContent = title.length;
+    document.getElementById('meta-desc-count').textContent = desc.length;
+    
+    var issues = [];
+    var score = 100;
+    
+    // Title analysis
+    if (title.length === 0) {
+        issues.push({type: 'error', text: 'Meta Title не заполнен'});
+        score -= 20;
+    } else if (title.length > 60) {
+        issues.push({type: 'warning', text: 'Meta Title слишком длинный (' + title.length + '/60)'});
+        score -= 10;
+    } else if (title.length < 30) {
+        issues.push({type: 'info', text: 'Meta Title короткий (' + title.length + ' символов)'});
+        score -= 5;
+    }
+    
+    // Description analysis
+    if (desc.length === 0) {
+        issues.push({type: 'error', text: 'Meta Description не заполнен'});
+        score -= 15;
+    } else if (desc.length > 160) {
+        issues.push({type: 'warning', text: 'Meta Description будет обрезан (' + desc.length + '/160)'});
+        score -= 10;
+    } else if (desc.length < 120) {
+        issues.push({type: 'info', text: 'Meta Description короткий (рекомендуется 120-160)'});
+        score -= 5;
+    }
+    
+    // Content analysis
+    var wordCount = content.replace(/<[^>]*>/g, '').split(/\s+/).filter(w => w.length > 0).length;
+    if (wordCount < 300) {
+        issues.push({type: 'info', text: 'Контент короткий (' + wordCount + ' слов, рекомендуется 300+)'});
+        score -= 10;
+    }
+    
+    score = Math.max(0, score);
+    
+    // Display results
+    analysisPanel.style.display = 'block';
+    
+    var rating, ratingClass;
+    if (score >= 80) { rating = 'Хорошо'; ratingClass = 'seo-good'; }
+    else if (score >= 50) { rating = 'Средне'; ratingClass = 'seo-average'; }
+    else { rating = 'Плохо'; ratingClass = 'seo-poor'; }
+    
+    scoreEl.textContent = rating + ' (' + score + '%)';
+    scoreEl.className = 'px-3 py-1 rounded-full text-sm font-medium ' + ratingClass;
+    analysisPanel.className = 'mb-6 p-4 rounded-lg border ' + ratingClass;
+    
+    issuesEl.innerHTML = issues.map(function(i) {
+        var icon = i.type === 'error' ? '❌' : (i.type === 'warning' ? '⚠️' : '💡');
+        return '<div class="text-sm">' + icon + ' ' + i.text + '</div>';
+    }).join('');
+}
+
+// Bind events
+document.getElementById('seo-meta-title')?.addEventListener('input', analyzeSeo);
+document.getElementById('seo-meta-description')?.addEventListener('input', analyzeSeo);
+document.getElementById('publication-title')?.addEventListener('input', analyzeSeo);
+
+// Initial analysis
+setTimeout(analyzeSeo, 500);
+JS, \yii\web\View::POS_END);
+?>

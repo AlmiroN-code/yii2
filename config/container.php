@@ -4,7 +4,7 @@
  * Конфигурация DI контейнера.
  * 
  * Регистрирует все интерфейсы и их реализации для автоматической инъекции зависимостей.
- * Requirements: 3.1, 3.2, 3.5
+ * Requirements: 3.1, 3.2, 3.5, 8.1-8.10
  */
 
 use app\repositories\CategoryRepository;
@@ -15,8 +15,12 @@ use app\repositories\TagRepository;
 use app\repositories\TagRepositoryInterface;
 use app\repositories\UserRepository;
 use app\repositories\UserRepositoryInterface;
+use app\services\ImageOptimizer;
+use app\services\ImageOptimizerInterface;
 use app\services\PublicationService;
 use app\services\PublicationServiceInterface;
+use app\services\SeoService;
+use app\services\SeoServiceInterface;
 use app\services\SlugService;
 use app\services\SlugServiceInterface;
 use app\services\UserService;
@@ -34,5 +38,7 @@ return [
         SlugServiceInterface::class => SlugService::class,
         PublicationServiceInterface::class => PublicationService::class,
         UserServiceInterface::class => UserService::class,
+        ImageOptimizerInterface::class => ImageOptimizer::class,
+        SeoServiceInterface::class => SeoService::class,
     ],
 ];

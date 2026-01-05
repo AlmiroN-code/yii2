@@ -13,13 +13,15 @@ use yii\db\Expression;
 
 /**
  * Category model for hierarchical categories.
- * Requirements: 1.1, 1.4, 2.1, 2.2, 5.3, 5.4
+ * Requirements: 1.1, 1.4, 2.1, 2.2, 5.3, 5.4, 8.2
  *
  * @property int $id
  * @property int|null $parent_id
  * @property string $name
  * @property string $slug
  * @property string|null $description
+ * @property string|null $meta_title
+ * @property string|null $meta_description
  * @property int $sort_order
  * @property string $created_at
  * @property string $updated_at
@@ -58,10 +60,10 @@ class Category extends ActiveRecord
     {
         return [
             [['name'], 'required'],
-            [['name'], 'string', 'max' => 255],
+            [['name', 'meta_title'], 'string', 'max' => 255],
             [['slug'], 'string', 'max' => 255],
             [['slug'], 'unique'],
-            [['description'], 'string'],
+            [['description', 'meta_description'], 'string'],
             [['parent_id', 'sort_order'], 'integer'],
             [['parent_id'], 'exist', 'skipOnError' => true, 'targetClass' => self::class, 'targetAttribute' => ['parent_id' => 'id']],
             [['sort_order'], 'default', 'value' => 0],
@@ -79,6 +81,8 @@ class Category extends ActiveRecord
             'name' => 'Название',
             'slug' => 'URL-адрес',
             'description' => 'Описание',
+            'meta_title' => 'Meta Title',
+            'meta_description' => 'Meta Description',
             'sort_order' => 'Порядок сортировки',
             'created_at' => 'Дата создания',
             'updated_at' => 'Дата обновления',

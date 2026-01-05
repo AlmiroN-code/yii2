@@ -5,7 +5,7 @@ namespace app\models;
 use Yii;
 use yii\base\Model;
 use yii\web\UploadedFile;
-use app\services\ImageOptimizer;
+use app\services\ImageOptimizerInterface;
 
 /**
  * Форма создания/редактирования публикации.
@@ -39,8 +39,8 @@ class PublicationForm extends Model
             [['content', 'excerpt'], 'string'],
             [['category_id'], 'integer'],
             [['category_id'], 'exist', 'targetClass' => Category::class, 'targetAttribute' => 'id'],
-            [['status'], 'in', 'range' => [Publication::STATUS_DRAFT, Publication::STATUS_PUBLISHED]],
-            [['status'], 'default', 'value' => Publication::STATUS_DRAFT],
+            [['status'], 'in', 'range' => ['draft', 'published', 'archived']],
+            [['status'], 'default', 'value' => 'draft'],
             [['tagIds'], 'safe'],
             [['imageFile'], 'file', 'extensions' => 'jpg, jpeg, png, gif, webp', 'maxSize' => 2 * 1024 * 1024],
         ];
@@ -143,13 +143,16 @@ class PublicationForm extends Model
         if ($this->imageFile->saveAs($filepath)) {
             // Оптимизация через ImageOptimizer
             try {
-                $optimizer = new ImageOptimizer();
-                $optimizer->optimize($filepath);
+                /** @var ImageOptimizerInterface $optimizer */
+                $optimizer = Yii::$container->get(ImageOptimizerInterface::class);
+                $optimizedPath = $optimizer->optimize($filepath);
+                
+                // Возвращаем относительный путь
+                return str_replace(Yii::getAlias('@webroot'), '', $optimizedPath);
             } catch (\Exception $e) {
                 Yii::warning('Image optimization failed: ' . $e->getMessage());
+                return '/uploads/publications/' . $filename;
             }
-            
-            return '/uploads/publications/' . $filename;
         }
 
         return null;

@@ -13,7 +13,7 @@ foreach ($container['definitions'] as $interface => $implementation) {
 $config = [
     'id' => 'basic',
     'basePath' => dirname(__DIR__),
-    'bootstrap' => ['log'],
+    'bootstrap' => ['log', 'app\components\RedirectHandler'],
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
@@ -29,6 +29,9 @@ $config = [
         'user' => [
             'identityClass' => 'app\models\User',
             'enableAutoLogin' => true,
+        ],
+        'seo' => [
+            'class' => 'app\components\SeoComponent',
         ],
         'errorHandler' => [
             'errorAction' => 'site/error',
@@ -72,6 +75,10 @@ $config = [
                 'api/search/autocomplete' => 'search/autocomplete',
                 'search' => 'search/index',
                 
+                // SEO routes
+                'sitemap.xml' => 'site/sitemap',
+                'robots.txt' => 'site/robots',
+                
                 // Frontend publication routes
                 'publications' => 'publication/index',
                 'publication/create' => 'publication/create',
@@ -87,10 +94,25 @@ $config = [
                 'tags' => 'tag/index',
                 'tag/<slug:[\w-]+>' => 'tag/view',
                 
+                // Frontend page routes
+                'page/<slug:[\w-]+>' => 'page/view',
+                
                 // Admin module routes
                 'admin' => 'admin/default/index',
                 'admin/login' => 'admin/auth/login',
                 'admin/logout' => 'admin/auth/logout',
+                
+                // Admin SEO routes
+                'admin/seo' => 'admin/seo/index',
+                'admin/seo/sitemap' => 'admin/seo/sitemap',
+                'admin/seo/generate-sitemap' => 'admin/seo/generate-sitemap',
+                'admin/seo/robots' => 'admin/seo/robots',
+                'admin/seo/redirects' => 'admin/seo/redirects',
+                'admin/seo/create-redirect' => 'admin/seo/create-redirect',
+                'admin/seo/update-redirect/<id:\d+>' => 'admin/seo/update-redirect',
+                'admin/seo/delete-redirect/<id:\d+>' => 'admin/seo/delete-redirect',
+                'admin/seo/webmaster' => 'admin/seo/webmaster',
+                
                 'admin/<controller:[\w-]+>' => 'admin/<controller>/index',
                 'admin/<controller:[\w-]+>/<action:[\w-]+>' => 'admin/<controller>/<action>',
                 'admin/<controller:[\w-]+>/<action:[\w-]+>/<id:\d+>' => 'admin/<controller>/<action>',

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace app\services;
 
-use app\enums\UserRole;
 use app\models\User;
 
 /**
@@ -43,10 +42,10 @@ interface UserServiceInterface
      * Изменяет роль пользователя.
      *
      * @param User $user Пользователь
-     * @param UserRole $role Новая роль
+     * @param string $role Новая роль
      * @return bool Успешность операции
      */
-    public function changeRole(User $user, UserRole $role): bool;
+    public function changeRole(User $user, string $role): bool;
 
     /**
      * Блокирует пользователя.

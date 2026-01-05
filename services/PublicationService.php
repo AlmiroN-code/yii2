@@ -15,10 +15,15 @@ use Yii;
  */
 class PublicationService implements PublicationServiceInterface
 {
+    private $slugService;
+    private $publicationRepository;
+
     public function __construct(
-        private readonly SlugServiceInterface $slugService,
-        private readonly PublicationRepositoryInterface $publicationRepository
+        SlugServiceInterface $slugService,
+        PublicationRepositoryInterface $publicationRepository
     ) {
+        $this->slugService = $slugService;
+        $this->publicationRepository = $publicationRepository;
     }
 
     /**
@@ -39,9 +44,9 @@ class PublicationService implements PublicationServiceInterface
             );
         }
         
-        // Устанавливаем статус по умолчанию через enum
+        // Устанавливаем статус по умолчанию
         if (empty($publication->status)) {
-            $publication->setPublicationStatus(PublicationStatus::DRAFT);
+            $publication->status = 'draft';
         }
         
         if ($this->publicationRepository->save($publication)) {
@@ -95,7 +100,7 @@ class PublicationService implements PublicationServiceInterface
      */
     public function publish(Publication $publication): bool
     {
-        $publication->setPublicationStatus(PublicationStatus::PUBLISHED);
+        $publication->status = 'published';
         
         if (empty($publication->published_at)) {
             $publication->published_at = date('Y-m-d H:i:s');
@@ -114,7 +119,7 @@ class PublicationService implements PublicationServiceInterface
      */
     public function archive(Publication $publication): bool
     {
-        $publication->setPublicationStatus(PublicationStatus::ARCHIVED);
+        $publication->status = 'archived';
         
         if ($this->publicationRepository->save($publication)) {
             return true;

@@ -1,268 +1,185 @@
-# Implementation Plan
+# Implementation Plan: SEO Management
 
-## 1. Система авторизации
+## Обзор
 
-- [x] 1.1 Создать миграцию для таблицы user
-  - Поля: id, username, email, password_hash, auth_key, access_token, status, created_at, updated_at
-  - Индексы на username, email, status
-  - _Requirements: 1.1-1.9_
+Реализация системы управления SEO в админке Yii2 блог-платформы: глобальные мета-теги, SEO для публикаций/категорий, sitemap, robots.txt, редиректы, Schema.org, canonical URL, интеграция с вебмастер-сервисами и SEO-анализ контента.
 
-- [x] 1.2 Создать модель User (ActiveRecord)
-  - Реализовать IdentityInterface
-  - Методы: setPassword(), validatePassword(), generateAuthKey()
-  - Правила валидации для username, email, password
-  - _Requirements: 1.6, 1.7_
+## Tasks
 
-- [x] 1.3 Создать модель RegisterForm
-  - Поля: username, email, password, password_confirm
-  - Валидация уникальности username и email
-  - Метод register() для создания пользователя
-  - _Requirements: 1.5, 1.6, 1.7_
+- [x] 1. Создание миграций и моделей для SEO
+  - [x] 1.1 Создать миграцию `m250101_100005_create_seo_setting_table`
+    - Таблица seo_setting с полями: entity_type, entity_id, meta_title, meta_description, meta_keywords, og_*, canonical_url, robots
+    - Уникальный индекс по (entity_type, entity_id)
+    - _Requirements: 8.1, 8.2, 8.8_
+  - [x] 1.2 Создать миграцию `m250101_100006_create_redirect_table`
+    - Таблица redirect с полями: source_url, target_url, type, hits, is_active
+    - Уникальный индекс по source_url
+    - _Requirements: 8.3, 8.6_
+  - [x] 1.3 Создать миграцию `m250101_100007_create_webmaster_verification_table`
+    - Таблица webmaster_verification с полями: service, verification_code, is_active
+    - Уникальный индекс по service
+    - _Requirements: 8.9_
+  - [x] 1.4 Создать модель `SeoSetting` с валидацией и связями
+    - Константы TYPE_GLOBAL, TYPE_PUBLICATION, TYPE_CATEGORY, TYPE_PAGE
+    - Методы для получения настроек по типу и ID
+    - _Requirements: 8.1, 8.2_
+  - [x] 1.5 Создать модель `Redirect` с валидацией уникальности source_url
+    - Константы TYPE_PERMANENT (301), TYPE_TEMPORARY (302)
+    - Метод incrementHits() для счётчика переходов
+    - _Requirements: 8.6_
+  - [x] 1.6 Создать модель `WebmasterVerification` с валидацией
+    - Константы SERVICE_GOOGLE, SERVICE_YANDEX, SERVICE_BING
+    - _Requirements: 8.9_
 
-- [x] 1.4 Обновить модель LoginForm
-  - Адаптировать под новую модель User (ActiveRecord)
-  - Поддержка входа по username или email
-  - _Requirements: 1.1-1.4_
+- [x] 2. Checkpoint - Проверка миграций
+  - Запустить миграции и убедиться, что таблицы созданы корректно
 
-- [x] 1.5 Создать AuthController
-  - actionLogin() - форма входа и обработка
-  - actionRegister() - форма регистрации и обработка
-  - actionLogout() - выход из системы
-  - _Requirements: 1.1-1.9_
+- [x] 3. Создание SeoService
+  - [x] 3.1 Создать интерфейс `SeoServiceInterface`
+    - Методы для глобальных настроек, мета-тегов, sitemap, robots.txt, редиректов, Schema.org, SEO-анализа
+    - _Requirements: 8.1-8.10_
+  - [x] 3.2 Реализовать `SeoService::getGlobalSettings()` и `saveGlobalSettings()`
+    - Получение/сохранение глобальных SEO настроек из seo_setting где entity_type='global'
+    - _Requirements: 8.1_
+  - [x] 3.3 Реализовать `SeoService::getMetaTags()` и `saveMetaTags()`
+    - Получение мета-тегов для публикации/категории с fallback на глобальные
+    - Автогенерация meta_title из заголовка, meta_description из контента
+    - _Requirements: 8.2_
+  - [x] 3.4 Реализовать `SeoService::generateSitemap()`
+    - Генерация XML sitemap со всеми публикациями, категориями, статическими страницами
+    - Включение loc, lastmod, changefreq, priority
+    - Сохранение в /web/sitemap.xml
+    - _Requirements: 8.4_
+  - [x] 3.5 Реализовать `SeoService::getRobotsContent()` и `saveRobotsContent()`
+    - Чтение/запись /web/robots.txt
+    - Создание базового robots.txt если не существует
+    - _Requirements: 8.5_
+  - [x] 3.6 Реализовать `SeoService::findRedirect()` и `createRedirect()`
+    - Поиск редиректа по source_url
+    - Создание редиректа с проверкой на циклы
+    - _Requirements: 8.6_
+  - [x] 3.7 Реализовать методы Schema.org: `getArticleSchema()`, `getWebsiteSchema()`, `getCollectionSchema()`
+    - JSON-LD разметка для Article, WebSite, CollectionPage
+    - _Requirements: 8.7_
+  - [x] 3.8 Реализовать `SeoService::analyzeContent()`
+    - Анализ заголовка (макс 60 символов), описания (120-160), контента (мин 300 слов)
+    - Проверка наличия ключевого слова в заголовке
+    - Проверка наличия изображений
+    - Возврат оценки (хорошо/средне/плохо) с рекомендациями
+    - _Requirements: 8.10_
+  - [x] 3.9 Реализовать `SeoService::getCanonicalUrl()`
+    - Возврат кастомного canonical или текущего URL
+    - _Requirements: 8.8_
+  - [x] 3.10 Зарегистрировать SeoService в DI контейнере
+    - Добавить в config/container.php
+    - _Requirements: 8.1-8.10_
 
-- [x] 1.6 Создать views для авторизации
-  - views/auth/login.php - форма входа с TailwindCSS
-  - views/auth/register.php - форма регистрации с TailwindCSS
-  - _Requirements: 1.1, 1.5_
+- [x] 4. Checkpoint - Проверка SeoService
+  - Убедиться, что сервис корректно инжектится и методы работают
 
-- [x] 1.7 Обновить config/web.php
-  - URL rules для /login, /register, /logout
-  - Обновить identityClass на новую модель User
-  - _Requirements: 1.1, 1.5, 1.8_
+- [x] 5. Создание SeoComponent
+  - [x] 5.1 Создать `SeoComponent` в components/
+    - Свойства: title, description, keywords, canonicalUrl, ogTags, schemaOrg
+    - Свойства верификации: googleVerification, yandexVerification, bingVerification
+    - _Requirements: 8.1, 8.7, 8.8, 8.9_
+  - [x] 5.2 Реализовать методы регистрации мета-тегов
+    - `registerMetaTags()` - регистрация title, description, keywords, OG tags
+    - `registerSchemaOrg()` - вставка JSON-LD в head
+    - `registerCanonical()` - регистрация canonical link
+    - `registerWebmasterTags()` - регистрация тегов верификации
+    - _Requirements: 8.1, 8.7, 8.8, 8.9_
+  - [x] 5.3 Зарегистрировать SeoComponent в конфигурации приложения
+    - Добавить в config/web.php как компонент 'seo'
+    - _Requirements: 8.1_
 
-## 2. Профили пользователей
+- [x] 6. Создание SeoController в админке
+  - [x] 6.1 Создать `SeoController` в modules/admin/controllers/
+    - Базовая структура с behaviors для доступа только админам
+    - _Requirements: 8.1_
+  - [x] 6.2 Реализовать `actionIndex()` - глобальные SEO настройки
+    - Форма: site_title, site_description, site_keywords, default_og_image
+    - _Requirements: 8.1_
+  - [x] 6.3 Реализовать `actionSitemap()` и `actionGenerateSitemap()`
+    - Настройки sitemap, кнопка генерации, исключение страниц
+    - _Requirements: 8.4_
+  - [x] 6.4 Реализовать `actionRobots()`
+    - Текстовый редактор для robots.txt с предупреждением о синтаксисе
+    - _Requirements: 8.5_
+  - [x] 6.5 Реализовать CRUD для редиректов
+    - `actionRedirects()` - список редиректов с пагинацией
+    - `actionCreateRedirect()` - создание редиректа
+    - `actionUpdateRedirect()` - редактирование редиректа
+    - `actionDeleteRedirect()` - удаление редиректа
+    - _Requirements: 8.6_
+  - [x] 6.6 Реализовать `actionWebmaster()`
+    - Форма для кодов верификации Google, Yandex, Bing
+    - _Requirements: 8.9_
 
-- [x] 2.1 Создать миграцию для таблицы user_profile
-  - Поля: id, user_id, display_name, avatar, bio, created_at, updated_at
-  - Foreign key на user(id) с CASCADE delete
-  - _Requirements: 2.1-2.7_
+- [x] 7. Создание views для SeoController
+  - [x] 7.1 Создать view `index.php` - форма глобальных настроек
+    - _Requirements: 8.1_
+  - [x] 7.2 Создать view `sitemap.php` - настройки и генерация sitemap
+    - _Requirements: 8.4_
+  - [x] 7.3 Создать view `robots.php` - редактор robots.txt
+    - _Requirements: 8.5_
+  - [x] 7.4 Создать views для редиректов: `redirects.php`, `create-redirect.php`, `update-redirect.php`
+    - _Requirements: 8.6_
+  - [x] 7.5 Создать view `webmaster.php` - форма верификации
+    - _Requirements: 8.9_
 
-- [x] 2.2 Создать модель UserProfile
-  - Связь belongsTo с User
-  - Правила валидации для avatar, bio
-  - _Requirements: 2.1, 2.2, 2.3_
+- [x] 8. Checkpoint - Проверка админки SEO
+  - Проверить все страницы админки SEO, сохранение настроек
 
-- [x] 2.3 Обновить модель User
-  - Добавить связь hasOne с UserProfile
-  - Метод getDisplayName() - возвращает display_name или username
-  - _Requirements: 2.1_
+- [x] 9. Интеграция SEO в публичную часть
+  - [x] 9.1 Добавить обработку редиректов в bootstrap приложения
+    - Проверка URL на наличие редиректа при каждом запросе
+    - Выполнение 301/302 редиректа с инкрементом счётчика
+    - _Requirements: 8.6_
+  - [x] 9.2 Интегрировать SeoComponent в layout
+    - Вызов registerMetaTags(), registerSchemaOrg(), registerCanonical(), registerWebmasterTags()
+    - _Requirements: 8.1, 8.7, 8.8, 8.9_
+  - [x] 9.3 Добавить роуты для sitemap.xml и robots.txt в SiteController
+    - `actionSitemap()` - возврат XML sitemap
+    - `actionRobots()` - возврат содержимого robots.txt
+    - _Requirements: 8.4, 8.5_
+  - [x] 9.4 Интегрировать SEO в контроллер публикаций
+    - Установка мета-тегов, canonical, Schema.org Article
+    - _Requirements: 8.2, 8.7, 8.8_
+  - [x] 9.5 Интегрировать SEO в контроллер категорий
+    - Установка мета-тегов, Schema.org CollectionPage
+    - _Requirements: 8.2, 8.7_
+  - [x] 9.6 Добавить Schema.org WebSite на главную страницу
+    - _Requirements: 8.7_
 
-- [x] 2.4 Создать модели форм профиля
-  - ProfileEditForm - редактирование профиля
-  - PasswordChangeForm - смена пароля
-  - _Requirements: 2.2, 2.5, 2.6_
+- [x] 10. Интеграция SEO в формы редактирования
+  - [x] 10.1 Добавить SEO-секцию в форму редактирования публикации
+    - Поля: meta_title, meta_description, og_title, og_description, og_image, canonical_url
+    - Предложение создать редирект при изменении slug
+    - _Requirements: 8.2, 8.3, 8.8_
+  - [x] 10.2 Добавить SEO-секцию в форму редактирования категории
+    - Поля: meta_title, meta_description
+    - _Requirements: 8.2_
+  - [x] 10.3 Добавить панель SEO-анализа в форму публикации
+    - Отображение рекомендаций в реальном времени (JavaScript)
+    - Цветовая индикация оценки
+    - _Requirements: 8.10_
 
-- [x] 2.5 Создать ProfileController
-  - actionView($username) - публичный профиль
-  - actionEdit($username) - редактирование (только владелец)
-  - actionPassword($username) - смена пароля (только владелец)
-  - Проверка доступа через AccessControl
-  - _Requirements: 2.1-2.7_
+- [x] 11. Добавление URL routes
+  - [x] 11.1 Добавить публичные роуты в config/web.php
+    - `sitemap.xml` => `site/sitemap`
+    - `robots.txt` => `site/robots`
+    - _Requirements: 8.4, 8.5_
+  - [x] 11.2 Добавить админские роуты для SEO
+    - Все роуты /admin/seo/*
+    - _Requirements: 8.1-8.10_
 
-- [x] 2.6 Создать views для профиля
-  - views/profile/view.php - публичный профиль
-  - views/profile/edit.php - форма редактирования
-  - views/profile/password.php - форма смены пароля
-  - _Requirements: 2.1, 2.2, 2.5_
+- [x] 12. Checkpoint - Финальная проверка
+  - Проверить все SEO функции: мета-теги, sitemap, robots, редиректы, Schema.org, верификация
 
-- [x] 2.7 Добавить URL rules для профиля
-  - /profile/{username}, /profile/{username}/edit, /profile/{username}/password
-  - _Requirements: 2.1, 2.2, 2.5_
+## Notes
 
-## 3. ImageOptimizer
-
-- [x] 3.1 Создать сервис ImageOptimizer
-  - Интерфейс ImageOptimizerInterface
-  - Метод optimize() - основная оптимизация
-  - Метод convertToWebp() - конвертация в WebP
-  - Метод createThumbnails() - создание превью (small, medium, large)
-  - Метод delete() - удаление с thumbnails
-  - Fallback если GD/Imagick недоступны
-  - _Requirements: 4.1-4.5_
-
-- [x] 3.2 Интегрировать ImageOptimizer в загрузку аватаров
-  - Обработка в ProfileController::actionEdit()
-  - Сохранение в web/uploads/avatars/
-  - _Requirements: 2.3, 4.1, 4.2_
-
-## 4. Закладки (Избранное)
-
-- [x] 4.1 Создать миграцию для таблицы favorite
-  - Поля: id, user_id, publication_id, created_at
-  - Уникальный индекс на (user_id, publication_id)
-  - Foreign keys с CASCADE delete
-  - _Requirements: 3.1-3.5_
-
-- [x] 4.2 Создать модель Favorite
-  - Связи belongsTo с User и Publication
-  - Статический метод toggle($userId, $publicationId)
-  - Статический метод isFavorite($userId, $publicationId)
-  - _Requirements: 3.1, 3.2_
-
-- [x] 4.3 Обновить модель Publication
-  - Добавить связь hasMany с Favorite
-  - Метод getFavoritesCount()
-  - _Requirements: 3.5_
-
-- [x] 4.4 Создать FavoriteController (API)
-  - actionToggle($id) - AJAX toggle закладки
-  - Возврат JSON с новым состоянием
-  - _Requirements: 3.1, 3.2_
-
-- [x] 4.5 Добавить actionFavorites в ProfileController
-  - Список избранных публикаций с пагинацией
-  - views/profile/favorites.php
-  - _Requirements: 3.3_
-
-- [x] 4.6 Создать виджет FavoriteButton
-  - widgets/FavoriteButton.php
-  - JavaScript для AJAX toggle
-  - Стили TailwindCSS
-  - _Requirements: 3.1, 3.2, 3.4_
-
-## 5. Комментарии
-
-- [x] 5.1 Создать миграцию для таблицы comment
-  - Поля: id, publication_id, user_id, guest_name, guest_email, content, rating, status, ip_address, created_at, updated_at
-  - Foreign keys с CASCADE/SET NULL
-  - Индексы на (publication_id, status)
-  - _Requirements: 5.1-5.7_
-
-- [x] 5.2 Создать модель Comment
-  - Связи belongsTo с Publication и User
-  - Константы статусов: PENDING, APPROVED, REJECTED, SPAM
-  - Метод isSpam() - проверка на запрещённые слова
-  - Scope для approved комментариев
-  - _Requirements: 5.1, 5.4, 5.5, 5.7_
-
-- [x] 5.3 Создать модель CommentForm
-  - Поля: name, email, content, rating, honeypot
-  - Валидация honeypot (должен быть пустым)
-  - Метод save() с автозаполнением для авторизованных
-  - _Requirements: 5.1, 5.2, 5.3_
-
-- [x] 5.4 Создать CommentController
-  - actionCreate($publicationId) - создание комментария
-  - Поддержка AJAX и обычной формы
-  - _Requirements: 5.1-5.4_
-
-- [x] 5.5 Создать виджет CommentForm
-  - widgets/CommentForm.php
-  - Форма с рейтингом звёздами
-  - Honeypot поле (скрытое CSS)
-  - _Requirements: 5.1, 5.3_
-
-- [x] 5.6 Создать виджет CommentList
-  - widgets/CommentList.php
-  - Отображение approved комментариев
-  - Средний рейтинг публикации
-  - _Requirements: 5.5_
-
-- [x] 5.7 Добавить админ-контроллер для модерации
-  - modules/admin/controllers/CommentController.php
-  - Список комментариев с фильтрами по статусу
-  - Действия: approve, reject, delete
-  - _Requirements: 5.5, 5.6_
-
-## 6. Хлебные крошки
-
-- [x] 6.1 Создать компонент Breadcrumbs
-  - components/Breadcrumbs.php
-  - Статические методы: forPublication(), forCategory(), forProfile(), forTag()
-  - Интеграция с Yii2 breadcrumbs widget
-  - _Requirements: 6.1-6.5_
-
-- [x] 6.2 Добавить методы buildBreadcrumbs в контроллеры
-  - PublicationController - категория + публикация
-  - CategoryController - иерархия категорий
-  - ProfileController - профили
-  - TagController - теги
-  - _Requirements: 6.2, 6.3, 6.4_
-
-- [x] 6.3 Обновить layout для отображения хлебных крошек
-  - views/layouts/main.php - добавить Breadcrumbs widget
-  - Стили TailwindCSS
-  - _Requirements: 6.1, 6.5_
-
-## 7. Поиск с автодополнением
-
-- [x] 7.1 Создать SearchService
-  - services/SearchService.php
-  - Метод autocomplete($query, $limit) - поиск по публикациям, категориям, тегам
-  - Метод search($query, $page) - полный поиск с пагинацией
-  - _Requirements: 7.2, 7.6_
-
-- [x] 7.2 Создать SearchController
-  - actionAutocomplete() - API для автодополнения
-  - actionIndex() - страница результатов поиска
-  - _Requirements: 7.1-7.6_
-
-- [x] 7.3 Создать views для поиска
-  - views/search/index.php - страница результатов
-  - _Requirements: 7.5_
-
-- [x] 7.4 Создать JavaScript для автодополнения
-  - web/js/search-autocomplete.js
-  - Debounce 300ms
-  - Выпадающий список результатов
-  - Навигация клавиатурой
-  - _Requirements: 7.1, 7.3, 7.4_
-
-- [x] 7.5 Обновить header layout
-  - Добавить поле поиска
-  - Подключить search-autocomplete.js
-  - _Requirements: 7.1_
-
-## 8. Финальная интеграция
-
-- [x] 8.1 Обновить навигацию в layout
-  - Ссылки на профиль для авторизованных
-  - Кнопки Login/Register для гостей
-  - _Requirements: 1.1, 2.1_
-
-- [x] 8.2 Интегрировать комментарии в страницу публикации
-  - views/publication/view.php - добавить CommentForm и CommentList
-  - _Requirements: 5.1_
-
-- [x] 8.3 Интегрировать кнопку закладки в карточки публикаций
-  - views/publication/view.php
-  - views/publication/_card.php (если есть)
-  - _Requirements: 3.1_
-
-## 9. Тестирование
-
-- [ ] 9.1 Unit тесты для моделей
-  - tests/unit/models/UserTest.php - validatePassword, setPassword, generateAuthKey
-  - tests/unit/models/CommentTest.php - isSpam, статусы
-  - tests/unit/models/FavoriteTest.php - toggle, isFavorite
-  - _Requirements: 1.6, 5.7, 3.1, 3.2_
-
-- [ ] 9.2 Unit тесты для сервисов
-  - tests/unit/services/ImageOptimizerTest.php - convertToWebp, createThumbnails
-  - tests/unit/services/SearchServiceTest.php - autocomplete, search
-  - _Requirements: 4.1, 4.2, 7.2_
-
-- [ ] 9.3 Functional тесты для авторизации
-  - tests/functional/AuthCest.php - login, register, logout
-  - Проверка валидации, remember me, редиректов
-  - _Requirements: 1.1-1.9_
-
-- [ ] 9.4 Functional тесты для профиля
-  - tests/functional/ProfileCest.php - view, edit, password
-  - Проверка доступа владельца vs не-владельца
-  - _Requirements: 2.1-2.7_
-
-- [ ] 9.5 Functional тесты для закладок и комментариев
-  - tests/functional/FavoriteCest.php - AJAX toggle
-  - tests/functional/CommentCest.php - создание, honeypot
-  - _Requirements: 3.1-3.5, 5.1-5.7_
+- Все задачи связаны с Требованием 8 (Управление SEO в админке)
+- SeoService использует паттерн Repository для работы с моделями
+- SeoComponent регистрируется как application component для доступа через `Yii::$app->seo`
+- Редиректы проверяются на циклы при создании
+- SEO-анализ работает на клиенте (JavaScript) для мгновенной обратной связи
